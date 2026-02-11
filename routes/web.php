@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\OrderPrintController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -47,6 +48,9 @@ Route::middleware(['auth', 'verified', 'tenant', 'subscription', 'role:owner,man
 Route::middleware(['auth', 'verified', 'tenant', 'subscription', 'role:owner,manager,cashier,waiter'])->group(function () {
     Route::livewire('/pos', 'pages::pos.index')->name('pos.index');
     Route::livewire('/orders', 'pages::orders.index')->name('orders.index');
+    Route::get('/orders/{order}/print/waiter', [OrderPrintController::class, 'waiter'])->name('orders.print.waiter');
+    Route::get('/orders/{order}/print/kitchen', [OrderPrintController::class, 'kitchen'])->name('orders.print.kitchen');
+    Route::get('/orders/{order}/print/receipt', [OrderPrintController::class, 'receipt'])->name('orders.print.receipt');
 });
 
 // Kitchen Display (Kitchen, Owner, Manager)
