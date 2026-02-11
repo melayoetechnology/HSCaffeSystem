@@ -21,6 +21,22 @@ new #[Title('Pesanan')] class extends Component {
     public string $resetConfirmation = '';
     public ?int $selectedOrderId = null;
 
+    public int $lastPendingCount = 0;
+
+    public function mount(): void
+    {
+        $this->lastPendingCount = Order::where('status', OrderStatus::Pending->value)->count();
+    }
+
+    public function checkNewOrders(): void
+    {
+        $current = Order::where('status', OrderStatus::Pending->value)->count();
+        if ($current > $this->lastPendingCount) {
+            $this->lastPendingCount = $current;
+        }
+        unset($this->orders);
+    }
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -140,7 +156,7 @@ new #[Title('Pesanan')] class extends Component {
     }
 }; ?>
 
-<div class="mx-auto w-full max-w-7xl space-y-6">
+<div class="mx-auto w-full max-w-7xl space-y-6" wire:poll.3s="checkNewOrders">
     <div class="flex items-center justify-between">
         <div>
             <flux:heading size="xl">{{ __('Pesanan') }}</flux:heading>

@@ -101,12 +101,7 @@
                                 <flux:sidebar.item icon="queue-list" :href="route('orders.index')" :current="request()->routeIs('orders.*')" wire:navigate>
                                     <span class="flex items-center gap-2">
                                         {{ __('Pesanan') }}
-                                        @php
-                                            $pendingCount = \App\Models\Order::where('status', \App\Enums\OrderStatus::Pending->value)->count();
-                                        @endphp
-                                        @if ($pendingCount > 0)
-                                            <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">{{ $pendingCount }}</span>
-                                        @endif
+                                        <span id="sidebar-pending-count" class="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white hidden" aria-hidden="true">0</span>
                                     </span>
                                 </flux:sidebar.item>
                             @endif
@@ -119,7 +114,10 @@
                     @if (Route::has('kitchen.index'))
                         <flux:sidebar.group :heading="__('Dapur')" class="grid">
                             <flux:sidebar.item icon="fire" :href="route('kitchen.index')" :current="request()->routeIs('kitchen.*')" wire:navigate>
-                                {{ __('Kitchen Display') }}
+                                <span class="flex items-center gap-2">
+                                    {{ __('Kitchen Display') }}
+                                    <span id="sidebar-kitchen-count" class="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white hidden" aria-hidden="true">0</span>
+                                </span>
                             </flux:sidebar.item>
                         </flux:sidebar.group>
                     @endif
@@ -203,6 +201,38 @@
         </flux:header>
 
         {{ $slot }}
+
+        <flux:toast.group position="top center">
+            <flux:toast />
+        </flux:toast.group>
+
+        @if (auth()->user()->tenant)
+            @php
+                $sidebarPendingCount = \App\Models\Order::where('status', \App\Enums\OrderStatus::Pending->value)->count();
+                $sidebarKitchenCount = \App\Models\Order::whereIn('status', [\App\Enums\OrderStatus::Confirmed->value, \App\Enums\OrderStatus::Preparing->value])->count();
+            @endphp
+            <script>
+                window.__updateSidebarCounts = function (pending, kitchen) {
+                    var el = document.getElementById('sidebar-pending-count');
+                    if (el) {
+                        el.textContent = pending;
+                        el.classList.toggle('hidden', pending === 0);
+                        el.setAttribute('aria-hidden', pending === 0 ? 'true' : 'false');
+                    }
+                    var el2 = document.getElementById('sidebar-kitchen-count');
+                    if (el2) {
+                        el2.textContent = kitchen;
+                        el2.classList.toggle('hidden', kitchen === 0);
+                        el2.setAttribute('aria-hidden', kitchen === 0 ? 'true' : 'false');
+                    }
+                };
+                document.addEventListener('DOMContentLoaded', function () {
+                    window.__updateSidebarCounts({{ $sidebarPendingCount }}, {{ $sidebarKitchenCount }});
+                });
+            </script>
+            <div id="new-order-toast-container" class="fixed left-1/2 top-4 z-[5000] flex w-full max-w-sm -translate-x-1/2 flex-col gap-2 px-4 sm:px-0" aria-live="polite"></div>
+            <livewire:new-order-notifier />
+        @endif
 
         @fluxScripts
     </body>

@@ -19,22 +19,6 @@ new #[Title('Kitchen Display')] class extends Component {
         return $query->orderBy('created_at', 'asc')->orderBy('id', 'asc')->get();
     }
 
-    #[Computed]
-    public function pendingCount(): int
-    {
-        return Order::where('status', OrderStatus::Pending->value)->count();
-    }
-
-    public function confirmOrder(int $orderId): void
-    {
-        $order = Order::findOrFail($orderId);
-        $order->update([
-            'status' => OrderStatus::Confirmed->value,
-            'confirmed_at' => now(),
-        ]);
-        unset($this->orders, $this->pendingCount);
-    }
-
     public function startPreparing(int $orderId): void
     {
         $order = Order::findOrFail($orderId);
@@ -65,27 +49,17 @@ new #[Title('Kitchen Display')] class extends Component {
         unset($this->orders);
     }
 
-    public function rejectOrder(int $orderId): void
-    {
-        $order = Order::findOrFail($orderId);
-        $order->update([
-            'status' => OrderStatus::Cancelled->value,
-            'cancelled_at' => now(),
-        ]);
-        unset($this->orders, $this->pendingCount);
-    }
-
     /**
+     * Hanya pesanan yang sudah dikonfirmasi ditampilkan di kitchen display.
+     *
      * @return array<string>
      */
     protected function filteredStatuses(): array
     {
         return match ($this->filterStatus) {
-            'pending' => [OrderStatus::Pending->value],
             'active' => [OrderStatus::Confirmed->value, OrderStatus::Preparing->value],
             'ready' => [OrderStatus::Ready->value],
             default => [
-                OrderStatus::Pending->value,
                 OrderStatus::Confirmed->value,
                 OrderStatus::Preparing->value,
                 OrderStatus::Ready->value,
@@ -104,14 +78,6 @@ new #[Title('Kitchen Display')] class extends Component {
             <flux:badge as="button" wire:click="$set('filterStatus', 'all')" :variant="$filterStatus === 'all' ? 'primary' : 'default'" size="lg">
                 {{ __('Semua') }}
             </flux:badge>
-            <flux:badge as="button" wire:click="$set('filterStatus', 'pending')" :variant="$filterStatus === 'pending' ? 'primary' : 'default'" size="lg" class="relative">
-                {{ __('Baru') }}
-                @if ($this->pendingCount > 0)
-                    <span class="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                        {{ $this->pendingCount }}
-                    </span>
-                @endif
-            </flux:badge>
             <flux:badge as="button" wire:click="$set('filterStatus', 'active')" :variant="$filterStatus === 'active' ? 'primary' : 'default'" size="lg">
                 {{ __('Diproses') }}
             </flux:badge>
@@ -120,24 +86,6 @@ new #[Title('Kitchen Display')] class extends Component {
             </flux:badge>
         </div>
     </div>
-
-    {{-- Pending alert banner --}}
-    @if ($this->pendingCount > 0 && $filterStatus !== 'pending')
-        <div class="flex items-center justify-between rounded-xl border-2 border-red-300 bg-red-50 px-5 py-3 dark:border-red-800 dark:bg-red-950/30">
-            <div class="flex items-center gap-3">
-                <span class="relative flex h-3 w-3">
-                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                    <span class="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
-                </span>
-                <span class="font-medium text-red-700 dark:text-red-300">
-                    {{ $this->pendingCount }} {{ __('pesanan baru menunggu konfirmasi') }}
-                </span>
-            </div>
-            <flux:button variant="filled" size="sm" wire:click="$set('filterStatus', 'pending')" class="!bg-red-600 !text-white hover:!bg-red-700">
-                {{ __('Lihat') }}
-            </flux:button>
-        </div>
-    @endif
 
     @if ($this->orders->isEmpty())
         <div class="flex h-64 items-center justify-center text-zinc-400">
@@ -151,7 +99,6 @@ new #[Title('Kitchen Display')] class extends Component {
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         @foreach ($this->orders as $order)
             <div wire:key="kds-{{ $order->id }}" class="rounded-xl border-2 p-4 space-y-3
-                {{ $order->status === \App\Enums\OrderStatus::Pending ? 'border-red-400 bg-red-50 dark:bg-red-950/20 animate-pulse-once' : '' }}
                 {{ $order->status === \App\Enums\OrderStatus::Confirmed ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20' : '' }}
                 {{ $order->status === \App\Enums\OrderStatus::Preparing ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/20' : '' }}
                 {{ $order->status === \App\Enums\OrderStatus::Ready ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' : '' }}
@@ -160,12 +107,6 @@ new #[Title('Kitchen Display')] class extends Component {
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="flex items-center gap-2">
-                            @if ($order->status === \App\Enums\OrderStatus::Pending)
-                                <span class="relative flex h-2.5 w-2.5">
-                                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                                    <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
-                                </span>
-                            @endif
                             <span class="font-mono text-sm font-bold">{{ $order->order_number }}</span>
                         </div>
                         <div class="text-xs text-zinc-500">
@@ -216,14 +157,7 @@ new #[Title('Kitchen Display')] class extends Component {
 
                 {{-- Actions --}}
                 <div class="flex gap-2">
-                    @if ($order->status === \App\Enums\OrderStatus::Pending)
-                        <flux:button variant="primary" class="flex-1" wire:click="confirmOrder({{ $order->id }})">
-                            {{ __('Konfirmasi') }}
-                        </flux:button>
-                        <flux:button variant="danger" wire:click="rejectOrder({{ $order->id }})" wire:confirm="{{ __('Tolak pesanan ini?') }}">
-                            {{ __('Tolak') }}
-                        </flux:button>
-                    @elseif ($order->status === \App\Enums\OrderStatus::Confirmed)
+                    @if ($order->status === \App\Enums\OrderStatus::Confirmed)
                         <flux:button variant="primary" class="flex-1" wire:click="startPreparing({{ $order->id }})">
                             {{ __('Mulai Proses') }}
                         </flux:button>
