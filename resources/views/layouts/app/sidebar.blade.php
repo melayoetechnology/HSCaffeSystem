@@ -85,6 +85,11 @@
                                 {{ __('Pelanggan') }}
                             </flux:sidebar.item>
                         @endif
+                        @if (Route::has('expenses.index'))
+                            <flux:sidebar.item icon="banknotes" :href="route('expenses.index')" :current="request()->routeIs('expenses.*')" wire:navigate>
+                                {{ __('Pengeluaran') }}
+                            </flux:sidebar.item>
+                        @endif
                     </flux:sidebar.group>
                 @endif
 
@@ -125,11 +130,18 @@
 
                 {{-- Reports Navigation --}}
                 @if (auth()->user()->isManagement() && ! auth()->user()->isSuperAdmin())
-                    @if (Route::has('reports.sales'))
+                    @if (Route::has('reports.sales') || Route::has('profit-loss.index'))
                         <flux:sidebar.group :heading="__('Laporan')" class="grid">
-                            <flux:sidebar.item icon="chart-bar" :href="route('reports.sales')" :current="request()->routeIs('reports.*')" wire:navigate>
-                                {{ __('Laporan') }}
-                            </flux:sidebar.item>
+                            @if (Route::has('reports.sales'))
+                                <flux:sidebar.item icon="chart-bar" :href="route('reports.sales')" :current="request()->routeIs('reports.*')" wire:navigate>
+                                    {{ __('Laporan Penjualan') }}
+                                </flux:sidebar.item>
+                            @endif
+                            @if (Route::has('profit-loss.index'))
+                                <flux:sidebar.item icon="scale" :href="route('profit-loss.index')" :current="request()->routeIs('profit-loss.*')" wire:navigate>
+                                    {{ __('Laba / Rugi') }}
+                                </flux:sidebar.item>
+                            @endif
                         </flux:sidebar.group>
                     @endif
                 @endif

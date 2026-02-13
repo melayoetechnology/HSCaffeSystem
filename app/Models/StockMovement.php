@@ -4,10 +4,13 @@ namespace App\Models;
 
 use App\Enums\StockMovementType;
 use App\Models\Concerns\BelongsToTenant;
+use App\Observers\StockMovementObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[ObservedBy(StockMovementObserver::class)]
 class StockMovement extends Model
 {
     use BelongsToTenant, HasFactory;

@@ -41,7 +41,9 @@ Route::middleware(['auth', 'verified', 'tenant', 'subscription', 'role:owner,man
     Route::livewire('/staff', 'pages::staff.index')->name('staff.index');
     Route::livewire('/inventory', 'pages::inventory.index')->name('inventory.index');
     Route::livewire('/customers', 'pages::customers.index')->name('customers.index');
+    Route::livewire('/expenses', 'pages::expenses.index')->name('expenses.index');
     Route::livewire('/reports', 'pages::reports.sales')->name('reports.sales');
+    Route::livewire('/profit-loss', 'pages::profit-loss.index')->name('profit-loss.index');
 });
 
 // POS & Orders (Cashier, Waiter, Owner, Manager)
